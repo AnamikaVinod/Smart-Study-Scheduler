@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Smart Study Scheduler</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
+            background: radial-gradient(circle at top, #0f2027, #000000);
+            color: white;
+            text-align: center;
+        }
+
+        .container {
+            padding: 20px;
+        }
+
+        input, button {
+            padding: 8px;
+            margin: 5px;
+            border-radius: 6px;
+            border: none;
+        }
+
+        button {
+            background: #6366f1;
+            color: white;
+            cursor: pointer;
+        }
+
+        .plan {
+            margin-top: 20px;
+            text-align: left;
+            display: inline-block;
+            background: #111827;
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        .warning {
+            color: #f87171;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>🌠 Smart Study Scheduler</h2>
+
+    <input type="time" id="start">
+    <input type="time" id="end"><br>
+
+    <input type="text" id="subject" placeholder="Subject">
+    <input type="number" id="hours" placeholder="Hours">
+    <button onclick="addSubject()">Add</button><br>
+
+    <button onclick="generatePlan()">Generate Plan</button>
+
+    <div class="warning" id="warning"></div>
+    <div class="plan" id="plan"></div>
+</div>
+
+<script>
+let subjects = [];
+
+function addSubject() {
+    let name = document.getElementById("subject").value;
+    let hrs = parseFloat(document.getElementById("hours").value);
+
+    if (!name || isNaN(hrs)) return;
+
+    subjects.push({name, hrs});
+    document.getElementById("subject").value = "";
+    document.getElementById("hours").value = "";
+}
+
+function generatePlan() {
+    let start = document.getElementById("start").value;
+    let end = document.getElementById("end").value;
+
+    if (!start || !end) return;
+
+    let startTime = toMinutes(start);
+    let endTime = toMinutes(end);
+
+    if (endTime < startTime) endTime += 1440; // next day
+
+    let totalAvailable = (endTime - startTime) / 60;
+
+    let totalNeeded = subjects.reduce((sum, s) => sum + s.hrs, 0);
+
+    let planDiv = document.getElementById("plan");
+    let warning = document.getElementById("warning");
+
+    planDiv.innerHTML = "";
+    warning.textContent = "";
+
+    // Overload check
+    if (totalNeeded > totalAvailable) {
+        warning.textContent = "⚠ Too much work! Reduce hours or plan earlier.";
+        totalNeeded = totalAvailable;
+    }
+
+    let current = startTime;
+
+    subjects.forEach(sub => {
+        let duration = Math.min(sub.hrs, totalAvailable);
+
+        let endSession = current + duration * 60;
+
+        planDiv.innerHTML += 
+            formatTime(current) + " - " + formatTime(endSession) + 
+            " → 📘 " + sub.name + "<br>";
+
+        current = endSession;
+
+        // Add break
+        if (current + 15 < endTime) {
+            planDiv.innerHTML += 
+                formatTime(current) + " - " + formatTime(current+15) + 
+                " → ☕ Break<br>";
+            current += 15;
+        }
+    });
+
+    // Suggest nap/revision
+    if (totalAvailable > 10) {
+        planDiv.innerHTML += "<br>💤 Suggestion: Take a nap before long sessions.";
+    } else {
+        planDiv.innerHTML += "<br>🔁 Suggestion: Revise at the end.";
+    }
+}
+
+function toMinutes(time) {
+    let [h, m] = time.split(":").map(Number);
+    return h * 60 + m;
+}
+
+function formatTime(mins) {
+    mins = mins % 1440;
+    let h = Math.floor(mins / 60);
+    let m = mins % 60;
+    return (h<10?"0":"")+h + ":" + (m<10?"0":"")+m;
+}
+</script>
+
+</body>
+</html>
